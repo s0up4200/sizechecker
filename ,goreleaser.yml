@@ -1,0 +1,24 @@
+project_name: sizechecker
+builds:
+  - main: ./main.go
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - "-s -w"
+
+archives:
+  - format: tar.gz
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - sizechecker
+
+release:
+  github:
+    owner: s0up4200
+    name: sizechecker
+
+changelog:
+  use: git
