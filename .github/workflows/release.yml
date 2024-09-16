@@ -33,6 +33,6 @@ jobs:
           version: latest
 
       - name: Run GoReleaser
-        run: goreleaser release --rm-dist
+        run: goreleaser release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
