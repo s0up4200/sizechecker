@@ -64,20 +64,17 @@ func shouldSendNotification(webhookURL string, cooldown time.Duration) (bool, er
 	filePath := getNotificationTimestampFilePath(webhookURL)
 	//fmt.Println("Timestamp file path:", getNotificationTimestampFilePath(webhookURL))
 
-	// Open the file (or create if it doesn't exist) with read/write permissions
 	file, err := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE, 0644)
 	if err != nil {
 		return false, fmt.Errorf("error opening timestamp file: %v", err)
 	}
 	defer file.Close()
 
-	// Acquire an exclusive lock
 	if err := unix.Flock(int(file.Fd()), unix.LOCK_EX); err != nil {
 		return false, fmt.Errorf("error acquiring file lock: %v", err)
 	}
-	defer unix.Flock(int(file.Fd()), unix.LOCK_UN) // Ensure the lock is released
+	defer unix.Flock(int(file.Fd()), unix.LOCK_UN)
 
-	// Read the last notification timestamp
 	data, err := io.ReadAll(file)
 	if err != nil {
 		return false, fmt.Errorf("error reading timestamp file: %v", err)
@@ -85,13 +82,11 @@ func shouldSendNotification(webhookURL string, cooldown time.Duration) (bool, er
 
 	lastSentStr := string(bytes.TrimSpace(data))
 	if lastSentStr == "" {
-		// No timestamp recorded yet; we can send the notification
 		return true, nil
 	}
 
 	lastSentUnix, err := strconv.ParseInt(lastSentStr, 10, 64)
 	if err != nil {
-		// Could not parse timestamp; assume we can send notification
 		return true, nil
 	}
 
@@ -106,20 +101,17 @@ func shouldSendNotification(webhookURL string, cooldown time.Duration) (bool, er
 func updateNotificationTimestamp(webhookURL string) error {
 	filePath := getNotificationTimestampFilePath(webhookURL)
 
-	// Open the file with write permissions
 	file, err := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
 		return fmt.Errorf("error opening timestamp file: %v", err)
 	}
 	defer file.Close()
 
-	// Acquire an exclusive lock
 	if err := unix.Flock(int(file.Fd()), unix.LOCK_EX); err != nil {
 		return fmt.Errorf("error acquiring file lock: %v", err)
 	}
-	defer unix.Flock(int(file.Fd()), unix.LOCK_UN) // Ensure the lock is released
+	defer unix.Flock(int(file.Fd()), unix.LOCK_UN)
 
-	// Write the current timestamp
 	currentTime := strconv.FormatInt(time.Now().Unix(), 10)
 	if _, err := file.WriteString(currentTime); err != nil {
 		return fmt.Errorf("error writing timestamp file: %v", err)
