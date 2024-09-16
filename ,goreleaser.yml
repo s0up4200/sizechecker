@@ -1,24 +1,51 @@
+# .goreleaser.yml
 project_name: sizechecker
+
+before:
+  hooks:
+    - go mod tidy
+
 builds:
-  - main: ./main.go
+  - id: sizechecker
+    env:
+      - CGO_ENABLED=0
     goos:
       - linux
     goarch:
       - amd64
       - arm64
-    ldflags:
-      - "-s -w"
+    main: ./main.go
+    binary: sizechecker
 
 archives:
-  - format: tar.gz
-    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
-    files:
+  - id: sizechecker
+    builds:
       - sizechecker
+    format: tar.gz
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
 
 release:
   github:
     owner: s0up4200
     name: sizechecker
 
+checksum:
+  name_template: "{{ .ProjectName }}_{{ .Version }}_checksums.txt"
+
 changelog:
-  use: git
+  sort: asc
+  use: github
+  filters:
+    exclude:
+      - Merge pull request
+      - Merge remote-tracking branch
+      - Merge branch
+  groups:
+    - title: "New Features"
+      regexp: "^.*feat[(\\w)]*:+.*$"
+      order: 0
+    - title: "Bug fixes"
+      regexp: "^.*fix[(\\w)]*:+.*$"
+      order: 10
+    - title: Other work
+      order: 999
