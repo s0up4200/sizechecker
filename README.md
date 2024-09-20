@@ -6,39 +6,37 @@
 
 1. Open your terminal.
 
-2. Run the following command to download the binary:
+2. Run the following command to download the appropriate binary for your Linux system:
 
-   ```bash
-   wget https://github.com/s0up4200/sizechecker/releases/latest/download/sizechecker
-   ```
-
-3. Once downloaded, you need to make the file executable. Run the following command:
-
-   ```bash
-   chmod +x sizechecker
-   ```
-
-### Step 2: Move the Binary to a Directory (optional)
-
-You can move the binary to your local bin directory (`~/bin`), which doesn't require root permissions:
-
+For **Linux (AMD64)**:
 ```bash
-mv sizechecker ~/bin/
+wget $(curl -s https://api.github.com/repos/s0up4200/sizechecker/releases/latest | grep download | grep linux_amd64 | cut -d\" -f4)
 ```
 
-Make sure that `~/bin` is included in your system's `PATH`. If it's not, you can add the following line to your `.bashrc` or `.zshrc` file:
-
+For **Linux (ARM64)**:
 ```bash
-export PATH=$PATH:~/bin
+wget $(curl -s https://api.github.com/repos/s0up4200/sizechecker/releases/latest | grep download | grep linux_arm64 | cut -d\" -f4)
 ```
 
-After making changes to `.bashrc` or `.zshrc`, run the following command to apply the changes:
+3. Extract the downloaded tar.gz file:
 
 ```bash
-source ~/.bashrc  # or source ~/.zshrc for zsh users
+tar -xzf sizechecker_1.0.0*.tar.gz
 ```
 
-### Step 3: Usage Examples
+4. Once extracted, make the binary executable:
+
+```bash
+chmod +x sizechecker
+```
+
+5. (Optional) Move the binary to a directory in your `PATH` to make it globally accessible:
+
+```bash
+sudo mv sizechecker /usr/local/bin/
+```
+
+### Step 2: Usage Examples
 
 #### 1. Check Disk Space and Notify via Discord Webhook
 
@@ -66,7 +64,7 @@ sizechecker --discord="YOUR_DISCORD_WEBHOOK_URL" --cooldown=5m --limit=50GB /pat
 
 - `--cooldown=5m`: This sets a cooldown period of 5 minutes between notifications. If the disk space check fails within the cooldown period, no additional notification will be sent.
 
-### Step 4: Setup in autobrr
+### Step 3: Setup in autobrr
 
 1. Inside an **autobrr filter**, go to the **External** tab.
 
