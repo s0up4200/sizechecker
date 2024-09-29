@@ -10,9 +10,9 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
-	"syscall"
 	"time"
 
 	"golang.org/x/sys/unix"
@@ -20,12 +20,13 @@ import (
 	"github.com/inhies/go-bytesize"
 )
 
-func getAvailableSpace(dir string) (int64, error) {
-	var stat syscall.Statfs_t
-	if err := syscall.Statfs(dir, &stat); err != nil {
+func getUsedSpace(dir string) (int64, error) {
+	usedSpace, err := exec.Command("/bin/bash", "-c", "du $dir | grep -wi $dir$ | awk '{print $1;}' | tr -d '\n' ", dir).Output()
+	usedSpace2, err := strconv.ParseInt(string(usedSpace), 10, 64)
+	if err != nil {
 		return 0, err
 	}
-	return int64(stat.Bavail) * int64(stat.Bsize), nil
+	return int64(usedSpace2), nil
 }
 
 func sendDiscordNotification(webhookURL, message string) error {
@@ -161,20 +162,20 @@ func main() {
 		os.Exit(2)
 	}
 
-	availableBytes, err := getAvailableSpace(absDir)
+	usedBytes, err := getUsedSpace(absDir)
 	if err != nil {
-		fmt.Printf("Error getting available space: %v\n", err)
+		fmt.Printf("Error getting used space: %v\n", err)
 		os.Exit(2)
 	}
 
-	availableByteSize := bytesize.ByteSize(availableBytes)
-	if availableByteSize >= limitBytes {
-		fmt.Printf("Sufficient space: %s available.\n", availableByteSize)
+	usedByteSize := bytesize.ByteSize(usedBytes) * 1024
+	if usedByteSize <= limitBytes {
+		fmt.Printf("Sufficient space: %s used of %s.\n", usedByteSize, limitBytes)
 		os.Exit(0)
 	}
 
-	message := fmt.Sprintf("Warning: Only %s available in %s, which is below the limit of %s.",
-		availableByteSize, absDir, limitBytes)
+	message := fmt.Sprintf("Warning: Only %s used in %s, which is below the limit of %s.",
+		usedByteSize, absDir, limitBytes)
 	fmt.Println(message)
 
 	if *discordFlag != "" {
