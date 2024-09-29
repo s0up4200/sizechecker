@@ -10,7 +10,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strconv"
 	"syscall"
@@ -21,16 +20,20 @@ import (
 	"github.com/inhies/go-bytesize"
 )
 
-func getUsedSpace(dir string) (int64, error) {
-	usedSpace, err := exec.Command("/bin/bash", "-c", "du $dir | grep -wi $dir$ | awk '{print $1;}' | tr -d '\n' ", dir).Output()
-	if err != nil {
-		return 0, err
-	}
-	usedSpace2, err := strconv.ParseInt(string(usedSpace), 10, 64)
-	if err != nil {
-		return 0, err
-	}
-	return int64(usedSpace2) * 1024, nil
+func getUsedSpace(path string) (int64, error) {
+	var size int64
+
+	err := filepath.Walk(path, func(_ string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() {
+			size += info.Size()
+		}
+		return nil
+	})
+
+	return size, err
 }
 
 func getAvailableSpace(dir string) (int64, error) {
