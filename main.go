@@ -13,6 +13,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
+	"syscall"
 	"time"
 
 	"golang.org/x/sys/unix"
@@ -22,11 +23,22 @@ import (
 
 func getUsedSpace(dir string) (int64, error) {
 	usedSpace, err := exec.Command("/bin/bash", "-c", "du $dir | grep -wi $dir$ | awk '{print $1;}' | tr -d '\n' ", dir).Output()
+	if err != nil {
+		return 0, err
+	}
 	usedSpace2, err := strconv.ParseInt(string(usedSpace), 10, 64)
 	if err != nil {
 		return 0, err
 	}
-	return int64(usedSpace2), nil
+	return int64(usedSpace2) * 1024, nil
+}
+
+func getAvailableSpace(dir string) (int64, error) {
+	var stat syscall.Statfs_t
+	if err := syscall.Statfs(dir, &stat); err != nil {
+		return 0, err
+	}
+	return int64(stat.Bavail) * int64(stat.Bsize), nil
 }
 
 func sendDiscordNotification(webhookURL, message string) error {
@@ -123,12 +135,19 @@ func updateNotificationTimestamp(webhookURL string) error {
 
 func main() {
 	limitFlag := flag.String("limit", "", "Minimum required free space (e.g., 50GB)")
+	runTypeFlag := flag.String("runtype", "", "a -> available space, u -> used space")
 	discordFlag := flag.String("discord", "", "Discord webhook URL for notifications (optional)")
 	cooldownFlag := flag.Duration("cooldown", time.Minute, "Cooldown duration between notifications (e.g., 1m, 30s)")
 	flag.Parse()
 
 	if *limitFlag == "" {
 		fmt.Println("Error: --limit flag is required.")
+		flag.Usage()
+		os.Exit(2)
+	}
+
+	if *runTypeFlag == "" {
+		fmt.Println("Error: --runtype flag is required.")
 		flag.Usage()
 		os.Exit(2)
 	}
@@ -162,21 +181,45 @@ func main() {
 		os.Exit(2)
 	}
 
-	usedBytes, err := getUsedSpace(absDir)
-	if err != nil {
-		fmt.Printf("Error getting used space: %v\n", err)
-		os.Exit(2)
+	var multiByteSize bytesize.ByteSize
+
+	switch {
+	case *runTypeFlag == "u":
+		usedBytes, err := getUsedSpace(absDir)
+		if err != nil {
+			fmt.Printf("Error getting used space: %v\n", err)
+			os.Exit(2)
+		}
+		multiByteSize := bytesize.ByteSize(usedBytes)
+		if multiByteSize <= limitBytes {
+			fmt.Printf("Sufficient space: %s used of %s.\n", multiByteSize, limitBytes)
+			os.Exit(0)
+		}
+	case *runTypeFlag == "a":
+		availableBytes, err := getAvailableSpace(absDir)
+		if err != nil {
+			fmt.Printf("Error getting available space: %v\n", err)
+			os.Exit(2)
+		}
+		multiByteSize := bytesize.ByteSize(availableBytes)
+		if multiByteSize >= limitBytes {
+			fmt.Printf("Sufficient space: %s available.\n", multiByteSize)
+			os.Exit(0)
+		}
 	}
 
-	usedByteSize := bytesize.ByteSize(usedBytes) * 1024
-	if usedByteSize <= limitBytes {
-		fmt.Printf("Sufficient space: %s used of %s.\n", usedByteSize, limitBytes)
-		os.Exit(0)
-	}
+	var message string
 
-	message := fmt.Sprintf("Warning: Only %s used in %s, which is below the limit of %s.",
-		usedByteSize, absDir, limitBytes)
-	fmt.Println(message)
+	switch {
+	case *runTypeFlag == "u":
+		message = fmt.Sprintf("Warning: %s used which is beyond the limit of %s.",
+			multiByteSize, limitBytes)
+		fmt.Println(message)
+	case *runTypeFlag == "a":
+		message = fmt.Sprintf("Warning: Only %s used in %s, which is below the limit of %s.",
+			multiByteSize, absDir, limitBytes)
+		fmt.Println(message)
+	}
 
 	if *discordFlag != "" {
 		sendNotification, err := shouldSendNotification(*discordFlag, *cooldownFlag)
@@ -195,6 +238,5 @@ func main() {
 			fmt.Println("Notification not sent due to rate limiting.")
 		}
 	}
-
 	os.Exit(1)
 }
