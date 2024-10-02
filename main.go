@@ -193,7 +193,7 @@ func main() {
 			fmt.Printf("Error getting used space: %v\n", err)
 			os.Exit(2)
 		}
-		multiByteSize := bytesize.ByteSize(usedBytes)
+		multiByteSize = bytesize.ByteSize(usedBytes)
 		if multiByteSize <= limitBytes {
 			fmt.Printf("Sufficient space: %s used of %s.\n", multiByteSize, limitBytes)
 			os.Exit(0)
@@ -204,7 +204,7 @@ func main() {
 			fmt.Printf("Error getting available space: %v\n", err)
 			os.Exit(2)
 		}
-		multiByteSize := bytesize.ByteSize(availableBytes)
+		multiByteSize = bytesize.ByteSize(availableBytes)
 		if multiByteSize >= limitBytes {
 			fmt.Printf("Sufficient space: %s available.\n", multiByteSize)
 			os.Exit(0)
