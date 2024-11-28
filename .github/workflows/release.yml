@@ -59,10 +59,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
 
-      - name: Install GoReleaser
-        run: go install github.com/goreleaser/goreleaser@latest
-
       - name: Run GoReleaser
-        run: goreleaser release --clean
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: "~> v2"
+          args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
