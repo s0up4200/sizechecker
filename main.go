@@ -12,12 +12,12 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
-	"golang.org/x/sys/unix"
-
 	"github.com/inhies/go-bytesize"
+	"golang.org/x/sys/unix"
 )
 
 func getUsedSpace(path string) (int64, error) {
@@ -136,6 +136,10 @@ func updateNotificationTimestamp(webhookURL string) error {
 	return nil
 }
 
+func cleanSizeString(size string) string {
+	return strings.ReplaceAll(size, " ", "")
+}
+
 func main() {
 	limitFlag := flag.String("limit", "", "Limit size (e.g., 50GB). For 'u' runtype, it's the maximum allowed used space; for 'a', it's the minimum required free space.")
 	runTypeFlag := flag.String("runtype", "", "'a' for available space check, 'u' for used space check")
@@ -178,7 +182,7 @@ func main() {
 		os.Exit(2)
 	}
 
-	limitBytes, err := bytesize.Parse(*limitFlag)
+	limitBytes, err := bytesize.Parse(cleanSizeString(*limitFlag))
 	if err != nil {
 		fmt.Printf("Error parsing limit size: %v\n", err)
 		os.Exit(2)
