@@ -1,4 +1,4 @@
-module sizechecker
+module github.com/s0up4200/sizechecker
 
 go 1.23.3
 
