@@ -15,8 +15,8 @@ import (
 	"time"
 
 	"github.com/inhies/go-bytesize"
-	"github.com/luckylittle/sizechecker/discord"
-	"github.com/luckylittle/sizechecker/pushover"
+	"github.com/s0up4200/sizechecker/discord"
+	"github.com/s0up4200/sizechecker/pushover"
 	"golang.org/x/sys/unix"
 )
 
