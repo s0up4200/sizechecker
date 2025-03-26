@@ -4,11 +4,9 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
-	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -17,6 +15,8 @@ import (
 	"time"
 
 	"github.com/inhies/go-bytesize"
+	"github.com/s0up4200/sizechecker/discord"
+	"github.com/s0up4200/sizechecker/pushover"
 	"golang.org/x/sys/unix"
 )
 
@@ -42,32 +42,6 @@ func getAvailableSpace(dir string) (int64, error) {
 		return 0, err
 	}
 	return int64(stat.Bavail) * int64(stat.Bsize), nil
-}
-
-func sendDiscordNotification(webhookURL, message string) error {
-	payloadBytes, err := json.Marshal(map[string]string{"content": message})
-	if err != nil {
-		return fmt.Errorf("error marshalling JSON payload: %v", err)
-	}
-
-	req, err := http.NewRequest("POST", webhookURL, bytes.NewReader(payloadBytes))
-	if err != nil {
-		return err
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := (&http.Client{}).Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusNoContent {
-		bodyBytes, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("received non-204 response from Discord: %s - %s", resp.Status, string(bodyBytes))
-	}
-
-	return nil
 }
 
 func getNotificationTimestampFilePath(webhookURL string) string {
@@ -144,6 +118,7 @@ func main() {
 	limitFlag := flag.String("limit", "", "Limit size (e.g., 50GB). For 'u' runtype, it's the maximum allowed used space; for 'a', it's the minimum required free space.")
 	runTypeFlag := flag.String("runtype", "", "'a' for available space check, 'u' for used space check")
 	discordFlag := flag.String("discord", "", "Discord webhook URL for notifications (optional)")
+	pushoverFlag := flag.String("pushover", "", "Trigger a Pushover notification. This requires `pushover-api, pushover-userkey` to be set!")
 	cooldownFlag := flag.Duration("cooldown", time.Minute, "Cooldown duration between notifications (e.g., 1m, 30s)")
 	flag.Parse()
 
@@ -235,7 +210,7 @@ func main() {
 		if err != nil {
 			fmt.Printf("Error checking notification cooldown: %v\n", err)
 		} else if sendNotification {
-			if err := sendDiscordNotification(*discordFlag, message); err != nil {
+			if err := discord.SendDiscordNotification(*discordFlag, message); err != nil {
 				fmt.Printf("Error sending Discord notification: %v\n", err)
 			} else {
 				fmt.Println("Discord notification sent successfully.")
@@ -245,6 +220,31 @@ func main() {
 			}
 		} else {
 			fmt.Println("Notification not sent due to rate limiting.")
+		}
+	}
+
+	if *pushoverFlag != "" {
+		parts := strings.Split(*pushoverFlag, ",")
+		if len(parts) != 2 {
+			fmt.Println("Error: expected two values separated by ','")
+			return
+		}
+		pushoverApiFlag := parts[0]
+		pushoverUserKeyFlag := parts[1]
+		if pushoverApiFlag == "" || pushoverUserKeyFlag == "" {
+			fmt.Println("Error: When using -pushover, both $pushover-api and $pushover-userkey must be provided!")
+			flag.Usage()
+			os.Exit(1)
+		}
+		notification := pushover.Notification{
+			APIToken: pushoverApiFlag,
+			UserKey:  pushoverUserKeyFlag,
+			Message:  message,
+			Title:    "sizechecker notification",
+		}
+		if err := notification.Send(); err != nil {
+			fmt.Println("Error sending notification:", err)
+			os.Exit(1)
 		}
 	}
 

@@ -1,6 +1,6 @@
 # Sizechecker
 
-**Sizechecker** is a companion tool for **autobrr** that helps prevent accepting new downloads when certain disk space conditions are met. It can check both used and available disk space and can send notifications to a Discord webhook if the specified threshold is crossed.
+**Sizechecker** is a companion tool for **autobrr** that helps prevent accepting new downloads when certain disk space conditions are met. It can check both used and available disk space and can send notifications to a [Discord](https://discord.com/) webhook or [Pushover](https://pushover.net/) application if the specified threshold is crossed.
 
 ## Step 1: Grab the Binary
 
@@ -23,7 +23,7 @@ wget $(curl -s https://api.github.com/repos/s0up4200/sizechecker/releases/latest
 3. Extract the downloaded tar.gz file:
 
 ```bash
-tar -xzf sizechecker_1.0.0*.tar.gz
+tar -xzf sizechecker_1.2.0*.tar.gz
 ```
 
 4. Once extracted, make the binary executable:
@@ -55,19 +55,19 @@ sizechecker --limit=50GB --runtype=a --discord="YOUR_DISCORD_WEBHOOK_URL" /path/
 - `--discord`: This is the Discord webhook URL where the notification will be sent if the disk space is below the specified limit.
 - `/path/to/check`: This is the directory where you want to check available space. E.g., `~/` for your home directory.
 
-#### 2. Check Used Disk Space and Notify via Discord Webhook
+#### 2. Check Used Disk Space and Notify via Pushover
 
 You can also use the tool to check the used disk space in a specified directory, and send a notification if the used space exceeds a certain limit.
 
 **Example:**
 
 ```bash
-sizechecker --limit=500GB --runtype=u --discord="YOUR_DISCORD_WEBHOOK_URL" /path/to/check
+sizechecker --limit=500GB --runtype=u --pushover abcdefghklmnopqrstv,1234567890 /path/to/check
 ```
 
 - `--limit=500GB`: This sets the **maximum allowed used space** in the specified directory.
 - `--runtype=u`: This tells the tool to check for **used** disk space.
-- `--discord`: Discord webhook URL for notifications.
+- `--pushover pushover-api,pushover-userkey`: Trigger a Pushover notification. This requires pushover-api, pushover-userkey to be set!
 - `/path/to/check`: The directory to check.
 
 #### 3. Set a Cooldown to Avoid Frequent Notifications
@@ -121,3 +121,7 @@ This setup ensures that autobrr will run **sizechecker** before accepting new do
 - The `--limit` flag works differently based on the `--runtype`:
   - For `runtype=a`, `--limit` specifies the **minimum required free space**.
   - For `runtype=u`, `--limit` specifies the **maximum allowed used space**.
+
+- The `--pushover` flag requires two values (both will be displayed when e.g. the new application is created [here](https://pushover.net/apps/build)):
+  - `pushover-api`: Pushover's unique API token.
+  - `pushover-userkey`: Pushover's unique user key.
