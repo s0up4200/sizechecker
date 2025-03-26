@@ -119,7 +119,6 @@ func main() {
 	runTypeFlag := flag.String("runtype", "", "'a' for available space check, 'u' for used space check")
 	discordFlag := flag.String("discord", "", "Discord webhook URL for notifications (optional)")
 	pushoverFlag := flag.String("pushover", "", "Trigger a Pushover notification. This requires `pushover-api, pushover-userkey` to be set!")
-	// pushoverUserKeyFlag := flag.String("pushover-userkey", "", "*REQUIRED* when pushover is used")
 	cooldownFlag := flag.Duration("cooldown", time.Minute, "Cooldown duration between notifications (e.g., 1m, 30s)")
 	flag.Parse()
 
