@@ -120,6 +120,7 @@ func main() {
 	discordFlag := flag.String("discord", "", "Discord webhook URL for notifications (optional)")
 	pushoverFlag := flag.String("pushover", "", "Trigger a Pushover notification. This requires `pushover-api, pushover-userkey` to be set!")
 	cooldownFlag := flag.Duration("cooldown", time.Minute, "Cooldown duration between notifications (e.g., 1m, 30s)")
+	customFlag := flag.String("custom", "", "Custom text to include in the notification message (optional)")
 	flag.Parse()
 
 	if *limitFlag == "" {
@@ -166,6 +167,7 @@ func main() {
 	var (
 		multiByteSize bytesize.ByteSize
 		message       string
+		isBreach      bool // To track if a limit was breached
 	)
 
 	switch *runTypeFlag {
@@ -173,31 +175,31 @@ func main() {
 		usedBytes, err := getUsedSpace(absDir)
 		if err != nil {
 			fmt.Printf("Error getting used space: %v\n", err)
-			os.Exit(2)
+			os.Exit(2) // Exit for critical errors before main logic
 		}
 		multiByteSize = bytesize.ByteSize(usedBytes)
 		if multiByteSize >= limitBytes {
 			message = fmt.Sprintf("Warning: %s used in %s, which is beyond the limit of %s.",
 				multiByteSize, absDir, limitBytes)
-			fmt.Println(message)
+			isBreach = true
 		} else {
-			fmt.Printf("Used space is within acceptable limits: %s used of %s.\n", multiByteSize, limitBytes)
-			os.Exit(0)
+			message = fmt.Sprintf("Used space is within acceptable limits: %s used of %s.", multiByteSize, limitBytes)
+			isBreach = false
 		}
 	case "a":
 		availableBytes, err := getAvailableSpace(absDir)
 		if err != nil {
 			fmt.Printf("Error getting available space: %v\n", err)
-			os.Exit(2)
+			os.Exit(2) // Exit for critical errors before main logic
 		}
 		multiByteSize = bytesize.ByteSize(availableBytes)
 		if multiByteSize < limitBytes {
 			message = fmt.Sprintf("Warning: Only %s available in %s, which is below the limit of %s.",
 				multiByteSize, absDir, limitBytes)
-			fmt.Println(message)
+			isBreach = true
 		} else {
-			fmt.Printf("Sufficient space: %s available.\n", multiByteSize)
-			os.Exit(0)
+			message = fmt.Sprintf("Sufficient space: %s available.", multiByteSize)
+			isBreach = false
 		}
 	default:
 		fmt.Println("Error: Invalid --runtype value. Use 'u' for used space or 'a' for available space.")
@@ -205,6 +207,21 @@ func main() {
 		os.Exit(2)
 	}
 
+	// Append custom text to the message if the flag was provided
+	if *customFlag != "" {
+		message = fmt.Sprintf("%s %s", message, *customFlag)
+	}
+
+	// Print the final message (with or without custom text) to the console
+	fmt.Println(message)
+
+	// If no limit was breached, exit successfully
+	if !isBreach {
+		os.Exit(0)
+	}
+
+	// If a limit was breached, 'message' (now including custom text if provided)
+	// will be used for notifications. Proceed with notification logic.
 	if *discordFlag != "" {
 		sendNotification, err := shouldSendNotification(*discordFlag, *cooldownFlag)
 		if err != nil {
