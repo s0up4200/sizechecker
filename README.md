@@ -23,7 +23,7 @@ wget $(curl -s https://api.github.com/repos/s0up4200/sizechecker/releases/latest
 3. Extract the downloaded tar.gz file:
 
 ```bash
-tar -xzf sizechecker_1.2.0*.tar.gz
+tar -xzf sizechecker_1.4.0*.tar.gz
 ```
 
 4. Once extracted, make the binary executable:
@@ -62,12 +62,13 @@ You can also use the tool to check the used disk space in a specified directory,
 **Example:**
 
 ```bash
-sizechecker --limit=500GB --runtype=u --pushover abcdefghklmnopqrstv,1234567890 /path/to/check
+sizechecker --limit=500GB --runtype=u --pushover abcdefghklmnopqrstv,1234567890 --custom "{{ .TorrentName }} was not downloaded!" /path/to/check
 ```
 
 - `--limit=500GB`: This sets the **maximum allowed used space** in the specified directory.
 - `--runtype=u`: This tells the tool to check for **used** disk space.
 - `--pushover pushover-api,pushover-userkey`: Trigger a Pushover notification. This requires pushover-api, pushover-userkey to be set!
+- `--custom`: Custom text to include in the notification message (optional).
 - `/path/to/check`: The directory to check.
 
 #### 3. Set a Cooldown to Avoid Frequent Notifications
@@ -103,7 +104,7 @@ sizechecker --discord="YOUR_DISCORD_WEBHOOK_URL" --cooldown=5m --limit=50GB --ru
 6. **Exec Arguments**: Add the required arguments. For example, to check for at least 50GB free space in `/path/to/check`, add the following:
 
    ```bash
-   --discord="YOUR_DISCORD_WEBHOOK_URL" --limit=50GB --runtype=a /path/to/check
+   --discord="YOUR_DISCORD_WEBHOOK_URL" --limit=50GB --runtype=a --custom "{{ .TorrentName }} was not downloaded!" /path/to/check
    ```
 
 7. **Expected Exit Status**: Set the expected exit status to `0`.
@@ -125,3 +126,5 @@ This setup ensures that autobrr will run **sizechecker** before accepting new do
 - The `--pushover` flag requires two values (both will be displayed when e.g. the new application is created [here](https://pushover.net/apps/build)):
   - `pushover-api`: Pushover's unique API token.
   - `pushover-userkey`: Pushover's unique user key.
+
+- The `--custom` flag is an optional message/text included in the notification.
